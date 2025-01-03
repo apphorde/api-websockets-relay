@@ -8,7 +8,7 @@
   "author": "Darlan Alves <me@darlanalv.es>",
   "license": "MIT",
   "dependencies": {
-    "ws": "^7.1.1"
+    "ws": "^8.0.0"
   },
   "scripts": {
     "start": "node index.js",
