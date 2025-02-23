@@ -1,6 +1,6 @@
 import http from "http";
 import { createHash, randomBytes } from "crypto";
-import WebSocket from "ws";
+import * as WebSocket from "ws";
 
 const port = Number(process.env.PORT);
 const relayMap = new Map();

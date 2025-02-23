@@ -1,17 +1,16 @@
 # WebSocket relay
 
-A relay for multiclient WebSocket communication
+A relay for WebSocket communication
 
 ## Endpoints
 
 ### GET /new
 
-Returns a hash key to use as session ID
+Returns a key to use as session ID
 
 ### [ws|wss]://host/hub/[session-id]
 
 Opens a WebSocket connection. All messages sent through this connection are relayed to all the other clients using the same session id.
-
 
 ## Usage
 
