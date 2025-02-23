@@ -1,6 +1,6 @@
 import http from "http";
 import { createHash, randomBytes } from "crypto";
-import * as WebSocket from "ws";
+import {WebSocketServer} from "ws";
 
 const port = Number(process.env.PORT);
 const relayMap = new Map();
@@ -44,7 +44,7 @@ socketServer.on("upgrade", function (request, socket, head) {
   let relay = relayMap.get(sessionId);
 
   if (!relay) {
-    relay = new WebSocket.Server({ noServer: true });
+    relay = new WebSocketServer({ noServer: true });
     relay.id = sessionId;
     relayMap.set(sessionId, relay);
   }
