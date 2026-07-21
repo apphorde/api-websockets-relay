@@ -24,6 +24,10 @@ socketServer.on("request", (request, response) => {
       response.writeHead(200).end(JSON.stringify(list, null, 2));
       break;
 
+    case method === "POST" && pathname === "/publish":
+      onPublish(request, response);
+      break;
+
     default:
       response.writeHead(404).end();
   }
@@ -57,6 +61,18 @@ socketServer.on("upgrade", function (request, socket, head) {
   });
 });
 
+async function onPublish(request, response) {
+  try {
+    const body = Buffer.concat(await request.toArray()).toString('utf8');
+    const message = JSON.parse(body);
+    const { sessionId, data } = message;
+    broadcast({ sessionId }, data);    
+    response.writeHead(202).end();
+  } catch (e) {
+    response.writeHead(400).end(String(e));
+  }
+}
+
 function broadcast(origin, message) {
   const sessionId = origin.id;
   const socket = relayMap.get(sessionId);
@@ -65,8 +81,7 @@ function broadcast(origin, message) {
     return;
   }
 
-  const hexMessage =
-    typeof message !== "string" ? message.toString("hex") : message;
+  const hexMessage = typeof message !== "string" ? message.toString("hex") : message;
 
   socket.clients.forEach((client) => {
     if (client === origin || client.readyState !== WebSocket.OPEN) return;
