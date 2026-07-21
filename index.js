@@ -1,13 +1,11 @@
 import http from "http";
-import { createHash, randomBytes } from "crypto";
-import {WebSocketServer} from "ws";
+import { randomUUID } from "crypto";
+import { WebSocketServer } from "ws";
 
 const port = Number(process.env.PORT);
 const relayMap = new Map();
 const socketServer = http.createServer();
-
 const log = (...args) => console.log(`[${new Date().toISOString()}]`, ...args);
-const uid = () => createHash("sha256").update(randomBytes(32)).digest("hex");
 
 socketServer.on("request", (request, response) => {
   const pathname = new URL(String(request.url), "http://localhost").pathname;
@@ -15,7 +13,7 @@ socketServer.on("request", (request, response) => {
 
   switch (true) {
     case method === "GET" && pathname === "/new":
-      response.writeHead(200).end(uid());
+      response.writeHead(200).end(randomUUID());
       break;
 
     case method === "GET" && pathname === "/status":
@@ -32,7 +30,8 @@ socketServer.on("request", (request, response) => {
 });
 
 socketServer.on("upgrade", function (request, socket, head) {
-  const pathname = new URL(String(request.url), "http://localhost").pathname;
+  const url = new URL(String(request.url), "http://localhost");
+  const { pathname } = url;
   const sessionId = pathname.slice(1);
 
   if (!sessionId) {
@@ -51,7 +50,10 @@ socketServer.on("upgrade", function (request, socket, head) {
 
   relay.handleUpgrade(request, socket, head, (webSocket) => {
     webSocket.id = sessionId;
-    handleNewClient(webSocket);
+    webSocket.textOnly = url.searchParams.has('text');
+    webSocket.on("message", function (message) {
+      broadcast(webSocket, message);
+    });
   });
 });
 
@@ -77,17 +79,6 @@ function broadcast(origin, message) {
 
     log(`TO ${client.id} #${message.length}`);
     client.send(message);
-  });
-}
-
-function handleNewClient(socket) {
-  socket.on("message", function (message) {
-    if (message === "text") {
-      socket.textOnly = true;
-      return;
-    }
-
-    broadcast(socket, message);
   });
 }
 
