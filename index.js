@@ -18,7 +18,7 @@ socketServer.on("request", (request, response) => {
 
     case method === "GET" && pathname === "/status":
       const list = [...relayMap.values()].map((socket) => ({
-        id: socket.id,
+        sessionId: socket.sessionId,
         clients: socket.clients.size,
       }));
       response.writeHead(200).end(JSON.stringify(list, null, 2));
@@ -48,7 +48,7 @@ socketServer.on("upgrade", function (request, socket, head) {
 
   if (!relay) {
     relay = new WebSocketServer({ noServer: true });
-    relay.id = sessionId;
+    relay.sessionId = sessionId;
     relayMap.set(sessionId, relay);
   }
 
@@ -79,7 +79,7 @@ function broadcast(payload) {
   const { from, to, isBinary, message } = payload;
   const socket = relayMap.get(to);
 
-  if (!socket || socket.clients.size < 2) {
+  if (!socket || socket.clients.size < 1) {
     return;
   }
 
@@ -109,6 +109,18 @@ function cleanup() {
   });
 }
 
+function pingPong() {
+  relayMap.forEach((relay, key) => {
+    if (relay.clients.size) {
+      socket.clients.forEach((client) => {
+        if (client.readyState !== WebSocket.OPEN) return;
+        client.ping():
+      });
+    }
+  });
+}
+
 socketServer.listen(port);
 setInterval(cleanup, 5000);
+setInterval(pingPong, 30_000);
 console.log(`[${new Date().toISOString()}] relay running at ${port}`);
