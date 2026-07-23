@@ -53,10 +53,11 @@ socketServer.on("upgrade", function (request, socket, head) {
   }
 
   relay.handleUpgrade(request, socket, head, (webSocket) => {
-    webSocket.id = sessionId;
+    webSocket.sessionId = sessionId;
+    webSocket.uid = ~~(Math.random() * 999999);
     webSocket.textOnly = url.searchParams.has('text');
-    webSocket.on("message", function (message) {
-      broadcast(webSocket, message);
+    webSocket.on("message", function (message, isBinary) {
+      broadcast({ from: webSocket.uid, to: sessionId, message, isBinary });
     });
   });
 });
@@ -66,16 +67,17 @@ async function onPublish(request, response) {
     const body = Buffer.concat(await request.toArray()).toString('utf8');
     const message = JSON.parse(body);
     const { sessionId, data } = message;
-    broadcast({ sessionId }, data);    
+    broadcast({ from: '', to: sessionId, isBinary: false, message: data });    
     response.writeHead(202).end();
   } catch (e) {
+    console.log('onPublish error', e);
     response.writeHead(400).end(String(e));
   }
 }
 
-function broadcast(origin, message) {
-  const sessionId = origin.id;
-  const socket = relayMap.get(sessionId);
+function broadcast(payload) {
+  const { from, to, isBinary, message } = payload;
+  const socket = relayMap.get(to);
 
   if (!socket || socket.clients.size < 2) {
     return;
@@ -84,16 +86,16 @@ function broadcast(origin, message) {
   const hexMessage = typeof message !== "string" ? message.toString("hex") : message;
 
   socket.clients.forEach((client) => {
-    if (client === origin || client.readyState !== WebSocket.OPEN) return;
+    if (client.uid === from || client.readyState !== WebSocket.OPEN) return;
 
     if (client.textOnly) {
-      log(`TO ${client.id} ${hexMessage}`);
-      client.send(hexMessage);
+      log(`TO ${to} #${client.uid} ${hexMessage}`);
+      client.send(hexMessage, { binary: false });
       return;
     }
 
-    log(`TO ${client.id} #${message.length}`);
-    client.send(message);
+    log(`TO ${to} #${client.uid} ${message.length} bytes`);
+    client.send(message, { binary: isBinary });
   });
 }
 
