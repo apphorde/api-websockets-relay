@@ -112,7 +112,7 @@ function cleanup() {
 function pingPong() {
   relayMap.forEach((relay, key) => {
     if (!relay.clients.size) { return };
-    socket.clients.forEach((client) => {
+    relay.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.ping();
       }
