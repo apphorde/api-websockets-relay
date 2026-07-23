@@ -67,7 +67,7 @@ async function onPublish(request, response) {
     const body = Buffer.concat(await request.toArray()).toString('utf8');
     const message = JSON.parse(body);
     const { sessionId, data } = message;
-    broadcast({ from: '', to: sessionId, isBinary: false, message: data });    
+    broadcast({ from: '', to: sessionId, isBinary: false, message: JSON.stringify(data) });    
     response.writeHead(202).end();
   } catch (e) {
     console.log('onPublish error', e);
